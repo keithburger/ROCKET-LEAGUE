@@ -1,0 +1,27 @@
+// Headless-browser smoke test: loads the game, starts Free Play, drives, takes screenshots.
+import { createRequire } from 'module'; const { chromium } = createRequire('/opt/node-tools/node_modules/')('playwright');
+const url = process.argv[2] || 'http://localhost:8123/index.html';
+const out = process.argv[3] || '/tmp/claude-0/shots';
+import fs from 'fs'; fs.mkdirSync(out, { recursive: true });
+const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const errors = [];
+page.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errors.push(m.type() + ': ' + m.text()); });
+page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+await page.goto(url);
+await page.waitForFunction(() => window.__game, null, { timeout: 60000 });
+await page.waitForTimeout(1500);
+await page.screenshot({ path: out + '/01_menu.png' });
+await page.click('[data-start=freeplay]');
+await page.waitForTimeout(1500);
+await page.screenshot({ path: out + '/02_freeplay.png' });
+await page.keyboard.down('KeyW'); await page.keyboard.down('ShiftLeft');
+await page.waitForTimeout(2500);
+await page.screenshot({ path: out + '/03_driving.png' });
+await page.keyboard.press('Space'); await page.waitForTimeout(150); await page.keyboard.down('Space'); await page.waitForTimeout(100); await page.keyboard.up('Space');
+await page.waitForTimeout(600);
+await page.screenshot({ path: out + '/04_air.png' });
+const st = await page.evaluate(() => { const g = window.__game; const h = g.match.human; return { state: g.match.state, mode: g.match.mode, pos: h.currT.toArray(), speed: h.speed, boost: h.boost, nan: !isFinite(h.currT.x) }; });
+console.log(JSON.stringify(st));
+console.log('errors:', errors.length ? errors.slice(0, 10) : 'none');
+await browser.close();
