@@ -5,7 +5,7 @@ import { CFG, toUU } from './config.js';
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3();
-const _m = new THREE.Matrix4();
+const _m = new THREE.Matrix4(), _qq = new THREE.Quaternion(), _qI = new THREE.Quaternion();
 
 export class GameCamera {
   constructor(camera, physics) {
@@ -51,10 +51,19 @@ export class GameCamera {
     const up = this.up;
     // ---- car heading: forward flattened onto the surface plane
     _b.copy(ctx.carFwd).addScaledVector(up, -ctx.carFwd.dot(up));
-    if (_b.lengthSq() > 0.04) { _b.normalize(); this.carHeadingTarget = _b; } else _b.copy(this.carHeading);
+    // when the nose points steeply up/down (flips, loops) the flattened heading is ill-defined: freeze it
+    const steep = Math.abs(ctx.carFwd.dot(up));
+    const w = clamp((0.8 - steep) / 0.3, 0, 1);
+    if (_b.lengthSq() > 1e-4) _b.normalize(); else _b.copy(this.carHeading);
+    _b.lerp(this.carHeading, 1 - w).normalize();
     // spring toward the car's heading (frame-rate independent)
     const ca = this.carHeading.angleTo(_b);
-    if (ca > 1e-4) { _c.copy(this.carHeading).lerp(_b, k(stiff)).normalize(); this.carHeading.copy(_c); }
+    if (ca > 1e-4) {
+      const step = Math.min(ca * k(stiff), 6.5 * dt);          // spring, with a swivel-rate limit (rad/s)
+      _qq.setFromUnitVectors(this.carHeading, _b);
+      _qq.slerp(_qI, 1 - Math.min(1, step / ca));              // fraction of the full rotation to apply
+      this.carHeading.applyQuaternion(_qq);
+    }
     this.carHeading.addScaledVector(up, -this.carHeading.dot(up)).normalize();
     // ---- ball direction
     let ballDir = _d.copy(ctx.ballPos).sub(ctx.carPos);
@@ -91,7 +100,7 @@ export class GameCamera {
     _b.copy(desired).sub(_a); const len = _b.length(); _b.multiplyScalar(1 / len);
     const hit = this.P.rayArenaCast(_a.x, _a.y, _a.z, _b.x, _b.y, _b.z, len + 0.4);
     let allowed = len;
-    if (hit) allowed = Math.max(0.6, hit.toi - 0.35);
+    if (hit) allowed = Math.max(1.0, hit.toi - 0.35);
     this.distScale += ((allowed / len) - this.distScale) * k(allowed / len < this.distScale ? 18 : 3);
     this.distScale = Math.min(this.distScale, allowed / len);
     desired.copy(_a).addScaledVector(_b, len * this.distScale);

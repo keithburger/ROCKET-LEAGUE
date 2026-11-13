@@ -1,0 +1,17 @@
+{
+  "name": "afterburn-arena",
+  "version": "1.0.0",
+  "description": "Browser-based 3D rocket-car soccer with Rocket-League-style physics (Three.js + Rapier WASM)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node tests/verify.mjs && node tests/camera_check.mjs",
+    "sim": "node tests/match_sim.mjs pro 150"
+  },
+  "vendoredDependencies": {
+    "three": "0.160.1 (vendor/three.module.js)",
+    "@dimforge/rapier3d-compat": "0.12.0 (vendor/rapier.es.js, WASM embedded as base64)"
+  },
+  "license": "MIT"
+}

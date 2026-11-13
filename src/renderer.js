@@ -150,6 +150,17 @@ export class Renderer {
     this.subscribe();
   }
 
+  // adaptive resolution: keep the frame rate near 60 on slower GPUs
+  adaptQuality(fps, dt) {
+    this._q = this._q || { scale: Math.min(window.devicePixelRatio || 1, 1.75), max: Math.min(window.devicePixelRatio || 1, 1.75), low: 0, high: 0 };
+    const q = this._q;
+    if (fps < 45) { q.low += dt; q.high = 0; } else if (fps > 57) { q.high += dt; q.low = 0; } else { q.low = q.high = 0; }
+    let changed = false;
+    if (q.low > 1.5 && q.scale > 0.6) { q.scale = Math.max(0.6, q.scale - 0.15); q.low = 0; changed = true; }
+    if (q.high > 6 && q.scale < q.max) { q.scale = Math.min(q.max, q.scale + 0.1); q.high = 0; changed = true; }
+    if (changed) { this.gl.setPixelRatio(q.scale); this.resize(); }
+  }
+
   resize() {
     const w = this.canvas.clientWidth || window.innerWidth, h = this.canvas.clientHeight || window.innerHeight;
     this.gl.setSize(w, h, false); this.width = w; this.height = h;

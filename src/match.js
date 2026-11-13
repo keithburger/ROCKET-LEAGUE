@@ -79,7 +79,8 @@ export class Match {
   }
 
   kickoff() {
-    this.cars.forEach((c, i) => { c.place(this.spawnFor(c.team, 0)); c.boost = CFG.car.boostStart; c.setControls(emptyControls()); });
+    this.cars.forEach((c) => { c.place(this.spawnFor(c.team, 0)); c.boost = CFG.car.boostStart; c.setControls(emptyControls()); });
+    for (const b of this.bots) { b.seq = null; b.stuckT = 0; }
     this.ball.reset(0, BR + 0.02, 0);
     this.state = 'countdown'; this.countdown = M.countdown; this.stateTime = 0; this.lastGoalInfo = null;
     this.pads.reset();

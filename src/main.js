@@ -122,6 +122,7 @@ async function boot() {
     }
     if (renderer.camShake) { cam.shake = Math.max(cam.shake, renderer.camShake); renderer.camShake = 0; }
     renderer.render(match, dt);
+    if (inMatch && !match.paused) renderer.adaptQuality(fps, dt);
     // audio
     const playing = inMatch && !match.paused && (match.state === 'playing' || match.state === 'goal' || match.state === 'countdown');
     _r.set(1, 0, 0).applyQuaternion(renderer.camera.quaternion);
