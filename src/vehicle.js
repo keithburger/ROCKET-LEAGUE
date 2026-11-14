@@ -1,7 +1,7 @@
 // vehicle.js — Rocket-League-style car: raycast-wheel chassis on a Rapier dynamic body.
 // All drive / steering / jump / dodge / air-control logic produces *forces and torques*
 // (impulses) on the rigid body; nothing teleports or sets orientation directly.
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../vendor/three.module.min.js';
 import { CFG, lerpTable, toUU } from './config.js';
 
 const C = CFG.car;

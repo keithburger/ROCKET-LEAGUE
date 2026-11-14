@@ -1,6 +1,6 @@
 // camera.js — car-follow and ball-tracking chase camera with spring smoothing,
 // speed-dependent framing, collision avoidance and free-look.
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../vendor/three.module.min.js';
 import { CFG, toUU } from './config.js';
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));

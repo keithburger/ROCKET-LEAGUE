@@ -1,6 +1,6 @@
 // ai.js — bot driver. It only ever writes a normal controls object (throttle, steer, pitch, roll,
 // jump, boost, handbrake) that goes through exactly the same Car physics as the human.
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../vendor/three.module.min.js';
 import { CFG, toUU } from './config.js';
 import { emptyControls } from './vehicle.js';
 

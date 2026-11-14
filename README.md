@@ -41,7 +41,7 @@ Browsers reserve a few `Ctrl` combos (Ctrl+W/T/N); rebind powerslide if that is 
 
 ```
 index.html, style.css      HUD, menus, settings, pause, results (plain DOM)
-vendor/                    three.module.js (0.160.1), rapier.es.js (rapier3d-compat 0.12.0) + licences
+vendor/                    three.module.min.js (0.160.1), rapier.es.js (rapier3d-compat 0.12.0) + licences
 src/config.js              ALL tunables (reference uu values, converted with uu()/toUU())
 src/physics.js             Rapier world wrapper: arena trimesh + goal frame, bodies, queries, collision groups
 src/arena.js               procedural arena geometry — ONE triangle list feeds both Three.js and the Rapier trimesh;

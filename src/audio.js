@@ -129,5 +129,5 @@ export class AudioSys {
 
   silenceAll() { if (!this.ready) return; const t = this.ctx.currentTime; for (const e of this.engines.values()) e.g.gain.setTargetAtTime(0, t, 0.05); this.boostSnd.g.gain.setTargetAtTime(0, t, 0.05); this.tireSnd.g.gain.setTargetAtTime(0, t, 0.05); this.windSnd.g.gain.setTargetAtTime(0, t, 0.05); }
 }
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../vendor/three.module.min.js';
 const _d = new THREE.Vector3();

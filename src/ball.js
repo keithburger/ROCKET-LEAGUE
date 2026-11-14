@@ -3,7 +3,7 @@
 // velocity-dependent impulse is added to the ball (applied once per contact, after the solver):
 //   dv = n * |v_rel| * f(|v_rel|)      with n built from the hit point in the car's frame,
 //   whose vertical component is scaled by 0.35 (hood/roof hits pop less than nose hits).
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../vendor/three.module.min.js';
 import { CFG, lerpTable, toUU } from './config.js';
 
 const B = CFG.ball, C = CFG.car;

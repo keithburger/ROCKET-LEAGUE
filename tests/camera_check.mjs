@@ -1,5 +1,5 @@
 // Verifies camera smoothness (max per-frame turn / jump) in car-cam and ball-cam during hard manoeuvres.
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../vendor/three.module.min.js';
 import { Physics } from '../src/physics.js';
 import { buildArenaGeometry } from '../src/arena.js';
 import { Match, Bus } from '../src/match.js';

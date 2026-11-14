@@ -1,5 +1,5 @@
 // match.js — game flow: fixed-step simulation loop, kickoff, scoring, overtime, replay, free-play tools.
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../vendor/three.module.min.js';
 import { CFG, toUU } from './config.js';
 import { Car, emptyControls } from './vehicle.js';
 import { Ball } from './ball.js';

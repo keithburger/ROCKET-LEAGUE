@@ -1,5 +1,5 @@
 // main.js — bootstrap, render loop and glue between the modules.
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../vendor/three.module.min.js';
 import { CFG } from './config.js';
 import { buildArenaGeometry } from './arena.js';
 import { Physics } from './physics.js';

@@ -1,6 +1,6 @@
 // renderer.js — Three.js scene: arena visuals (built from the shared arena geometry), cars, ball,
 // boost pads, particles, tire marks, crowd and lighting. Purely visual: never touches physics.
-import * as THREE from '../vendor/three.module.js';
+import * as THREE from '../vendor/three.module.min.js';
 import { CFG, toUU } from './config.js';
 
 const A = CFG.arena, CC = CFG.car;
