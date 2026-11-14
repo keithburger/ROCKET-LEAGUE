@@ -84,8 +84,12 @@ export const CFG = {
     dodgeImpulse: uu(500),
     dodgeSpeedBonus: 0.9,
     dodgeDeadzone: 0.5,
-    flipTime: 0.65,
-    flipTorqueAccel: 55,          // rad/s^2 along the flip axis
+    flipTime: 0.65,               // one full, clean revolution in this time
+    flipRampIn: 0.12,             // fraction of flipTime spent spinning up
+    flipRampOut: 0.3,             // fraction spent easing out so the car comes out level
+    flipAngleGain: 10,            // closed-loop correction toward the scheduled angle (1/s)
+    flipOffAxisDamp: 12,          // damping of stray pitch/roll spin during a flip (1/s)
+    flipMaxAngularSpeed: 14,      // rad/s ceiling while the dodge rotation runs
     flipVerticalDamp: 0.35,
     flipVerticalDampTime: 0.15,
     flipCancelThreshold: 0.5,

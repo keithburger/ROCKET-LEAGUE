@@ -51,7 +51,8 @@ src/ball.js                sphere + Rocket-League-style car/ball impact impulse,
 src/boost.js               34 pads (28 small / 6 large), overlap pickup, respawn timers
 src/match.js               120 Hz fixed-step loop, kickoff/countdown/goals/overtime/replay recording, free-play tools
 src/ai.js                  bot: ball prediction, intercepts, boost collection, defence, dodges, aerials, recovery
-src/camera.js              car-follow + ball-tracking camera, spring smoothing, collision avoidance, free look
+src/camera.js              chase camera: never rolls (world-up), critically-damped springs, ball cam frames the ball first and the car
+                           second, car cam follows heading on the ground / travel direction in the air, wall-aware placement, free look
 src/input.js               keyboard / mouse / gamepad, deadzones, bindings, rising-edge jump latch
 src/renderer.js            Three.js scene, procedural car/ball/arena/crowd, particles, tyre marks, pad animation
 src/audio.js               fully synthesised WebAudio (engine, boost, tyres, impacts, goal horn, crowd)
@@ -72,7 +73,8 @@ tests/                     headless verification (see below)
   drops lateral grip to 10 %, adds yaw assist, and grip recovers over 0.18 s.
 * **Aerials** – pitch/yaw/roll as torque impulses with per-axis damping and a 5.5 rad/s cap; boost thrusts along the car's forward
   vector in 3D. First jump 292 uu/s along the roof normal + up to 0.2 s hold (1458 uu/s²); dodge = 500 uu/s impulse (speed bonus when
-  flipping with the motion), flip torque for 0.65 s, vertical stall, flip cancel, landing restores jump/flip. Wavedashes, half-flips,
+  flipping with the motion), then a closed-loop flip: exactly one clean 360° revolution about the dodge axis in 0.65 s (fast spin-up,
+  eased finish) that comes out level so the car lands on its wheels; vertical stall, flip cancel (opposite pitch), landing restores jump/flip. Wavedashes, half-flips,
   speed-flips and flip resets are *not scripted*; they arise from these rules. Overturned car: roof contact re-enables the flip.
 * **Ball** – radius 91.25 uu, mass 30, gravity 650, CCD, restitution 0.6 / friction 0.35 vs the arena (product of per-collider
   coefficients), 6000 uu/s and 6 rad/s caps. Rapier resolves the contact; a dedicated impulse `Δv = n·|v_rel|·f(|v_rel|)` is then
@@ -86,13 +88,19 @@ tests/                     headless verification (see below)
   the ball path, picks intercepts, aligns shots, collects boost, defends, dodges/aerials (All-Star), recovers in the air and
   rights itself. It cannot teleport or touch the ball.
 
+## Compact build (e.g. for CodeHS)
+
+`tools/build-small.sh` bundles everything into 4 files (`index.html`, `style.css`, `game.js`, `rapier.js`, ~1.4 MB, ~720 KB zipped):
+Three.js is tree-shaken, all code minified, and Rapier's WASM is gzip-compressed and inflated in the browser.
+
 ## Verification
 
 ```bash
 node tests/verify.mjs        # 36 checks: accel/brake/coast/steering/powerslide, tap vs hold jump, dodge, 5.5 rad/s cap,
                              #   wall climb + wall jump, ceiling driving, goal geometry/crossbar/backboard, ball hit variety,
                              #   boost pads, demolition + 3 s respawn, frame-rate independence (30–240 fps), 60 s fuzz test
-node tests/camera_check.mjs  # camera smoothness during slaloms, powerslides, flips, aerial spins, wall driving
+node tests/flip_check.mjs    # every dodge direction: one 360° rotation, level at the end, lands and settles on its wheels
+node tests/camera_check.mjs  # no roll, ball in view 100% (ball cam), car in view, turn rate per frame, at 60 and 144 fps
 node tests/match_sim.mjs pro 150   # bot-vs-bot match, NaN / out-of-bounds / goal / replay checks
 python3 -m http.server 8123 &  node tests/browser_smoke.mjs   # needs Playwright: loads page, plays Free Play, screenshots
 ```
@@ -101,8 +109,8 @@ python3 -m http.server 8123 &  node tests/browser_smoke.mjs   # needs Playwright
 
 * Rocket League uses Bullet with proprietary tuning; this is a **faithful re-implementation of the published reference values on Rapier**,
   not a bit-exact clone. Things approximated: wheel/tyre model (impulse-based friction circle instead of Bullet's raycast vehicle),
-  flip torque constants (angular acceleration 55 rad/s² against the 5.5 rad/s cap), air-control constants, ball–car restitution/impulse
-  curve, ball rolling resistance (Rapier has none; ball drag 0.03 + sliding friction), camera spring (own spring, not RL's).
+  the dodge rotation (scripted angle profile tracked by torque impulses, peak ~13 rad/s, instead of RL's raw flip torque), air-control constants, ball–car restitution/impulse
+  curve, ball rolling resistance (Rapier has none; ball drag 0.03 + sliding friction), camera (own design, not RL's: ball-priority framing and see-through walls).
 * Arena: dimensions follow the standard field, but corner/ramp tessellation and radii are my own approximation (no RL mesh). Posts/crossbar
   are 30 uu-radius cylinders tangent to the goal opening. Rapier 0.12 has no `FIX_INTERNAL_EDGES` flag, so tiny ghost bumps on triangle seams are possible.
 * 1v1 + Free Play only (no 2v2/3v3, no online). No boost-meter consumption cooldown subtleties, no kickoff-diagonal positions in 1v1.

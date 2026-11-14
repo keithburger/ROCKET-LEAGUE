@@ -60,7 +60,7 @@ export class Car {
   resetState() {
     this.contacts = 0; this.onGround = false; this.bodyTouch = false;
     this.airTime = 0; this.hasJumped = false; this.jumpTime = 99; this.jumpHolding = false; this.holdTime = 0;
-    this.hasDodged = false; this.dodgeTime = 99; this.flipActive = false; this.dodgeAxis = new THREE.Vector3();
+    this.hasDodged = false; this.dodgeTime = 99; this.flipActive = false; this.dodgeAxis = new THREE.Vector3(); this.flipAngle = 0; this.flipTarget = 0; this.flipTotal = Math.PI * 2;
     this.dodgeF = 0; this.dodgeS = 0;
     this.grip = 1; this.boosting = false; this.supersonic = false;
     this.slipAmount = 0; this.landedEvent = 0; this.lastJumpEvent = 0; this.dodgeEvent = 0;
@@ -320,36 +320,56 @@ export class Car {
     const w = _w.copy(this.body.angvel()).applyQuaternion(_qi); // local angular velocity
     let pIn = pitchIn, yIn = steerIn, rIn = clamp(ctrl.roll, -1, 1);
     if (ctrl.airRoll) { rIn = clamp(rIn + steerIn, -1, 1); yIn = 0; }
-    // flip handling
-    let dwx = 0, dwy = 0, dwz = 0;
-    if (this.flipActive) {
-      this.dodgeTime = this.dodgeTime; // advanced in preStep
-      if (this.dodgeTime > C.flipTime) this.flipActive = false;
-      else if (this.dodgeF !== 0 && pitchIn * this.dodgeF < -C.flipCancelThreshold) this.flipActive = false; // flip cancel
+    let dwx = 0, dwy = 0, dwz = 0, cap = C.maxAngularSpeed;
+    // ---- dodge rotation: a closed-loop, single, clean revolution about the dodge axis
+    if (this.flipActive && this.dodgeF !== 0 && pitchIn * this.dodgeF < -C.flipCancelThreshold && this.dodgeTime > 0.05) {
+      // flip cancel: stop the rotation on the flip axis, hand control back to the player
+      const ax = this.dodgeAxis, wa = w.x * ax.x + w.z * ax.z;
+      dwx -= ax.x * wa * 0.85; dwz -= ax.z * wa * 0.85;
+      this.flipActive = false;
     }
     if (this.flipActive) {
-      // torque along the dodge axis; pitch & roll controls are overridden while the flip runs
-      dwx += this.dodgeAxis.x * C.flipTorqueAccel * dt; dwz += this.dodgeAxis.z * C.flipTorqueAccel * dt;
-      // vertical velocity damping right after the dodge (the "stall")
-      if (this.dodgeTime < C.flipVerticalDampTime) {
-        const vy = this.body.linvel().y;
-        this.applyLinear(0, -vy * C.flipVerticalDamp * (dt / C.flipVerticalDampTime), 0);
+      const T = C.flipTime, ax = this.dodgeAxis;
+      const u = this.dodgeTime / T;
+      const wa = w.x * ax.x + w.z * ax.z;               // measured spin about the flip axis
+      this.flipAngle += wa * dt;
+      if (u >= 1 || this.flipAngle >= this.flipTotal - 0.02) {
+        // finished: remove the remaining spin so the car comes out level and lands cleanly
+        dwx -= ax.x * wa; dwz -= ax.z * wa;
+        const ox = w.x - ax.x * wa, oz = w.z - ax.z * wa;
+        dwx -= ox * 0.6; dwz -= oz * 0.6;
+        this.flipActive = false;
+      } else {
+        // trapezoid speed profile whose integral over T equals the flip angle
+        const peak = this.flipTotal / (T * (1 - C.flipRampIn / 2 - C.flipRampOut / 2));
+        const shape = Math.min(1, u / C.flipRampIn) * Math.min(1, (1 - u) / C.flipRampOut);
+        this.flipTarget += peak * shape * dt;
+        const wCmd = Math.max(0, peak * shape + C.flipAngleGain * (this.flipTarget - this.flipAngle));
+        dwx += ax.x * (wCmd - wa); dwz += ax.z * (wCmd - wa);
+        // kill stray pitch/roll spin that is not on the flip axis
+        const ox = w.x - ax.x * wa, oz = w.z - ax.z * wa, kd = 1 - Math.exp(-C.flipOffAxisDamp * dt);
+        dwx -= ox * kd; dwz -= oz * kd;
+        // vertical stall right after the dodge
+        if (this.dodgeTime < C.flipVerticalDampTime) {
+          const vy = this.body.linvel().y;
+          this.applyLinear(0, -vy * C.flipVerticalDamp * (dt / C.flipVerticalDampTime), 0);
+        }
+        pIn = 0; rIn = 0;                              // pitch/roll are owned by the flip; yaw stays live
+        cap = C.flipMaxAngularSpeed;
+        dwy += (-yIn * C.airYawAccel - C.airYawDamp * w.y * (1 - Math.abs(yIn))) * dt;
+        const nx = w.x + dwx, ny = w.y + dwy, nz = w.z + dwz, sp = Math.hypot(nx, ny, nz);
+        if (sp > cap) { const k = cap / sp; dwx = nx * k - w.x; dwy = ny * k - w.y; dwz = nz * k - w.z; }
+        this.applyAngularDeltaLocal(dwx, dwy, dwz);
+        return;
       }
-      if (this.dodgeAxis.x !== 0) pIn = 0;
-      if (this.dodgeAxis.z !== 0) rIn = 0;
-      // yaw/damping remain
     }
     dwx += (-pIn * C.airPitchAccel - C.airPitchDamp * w.x * (1 - Math.abs(pIn))) * dt;
     dwy += (-yIn * C.airYawAccel - C.airYawDamp * w.y * (1 - Math.abs(yIn))) * dt;
     dwz += (-rIn * C.airRollAccel - C.airRollDamp * w.z * (1 - Math.abs(rIn))) * dt;
-    if (this.flipActive) { // damping must not fight the flip torque on its axis
-      if (this.dodgeAxis.x !== 0) dwx = this.dodgeAxis.x * C.flipTorqueAccel * dt;
-      if (this.dodgeAxis.z !== 0) dwz = this.dodgeAxis.z * C.flipTorqueAccel * dt;
-    }
     // angular speed cap
     const nx = w.x + dwx, ny = w.y + dwy, nz = w.z + dwz;
     const s = Math.hypot(nx, ny, nz);
-    if (s > C.maxAngularSpeed) { const k = C.maxAngularSpeed / s; dwx = nx * k - w.x; dwy = ny * k - w.y; dwz = nz * k - w.z; }
+    if (s > cap) { const k = cap / s; dwx = nx * k - w.x; dwy = ny * k - w.y; dwz = nz * k - w.z; }
     this.applyAngularDeltaLocal(dwx, dwy, dwz);
   }
 
@@ -361,7 +381,7 @@ export class Car {
       // second jump without direction: another vertical impulse
       if (up.y < -0.2 && this.bodyTouch) { // overturned on the ground: righting jump along world-up
         this.applyLinear(0, C.jumpImpulse, 0);
-        this.flipActive = true; this.dodgeAxis.set(0, 0, -1); this.dodgeF = 0; this.dodgeS = 1;
+        this.startFlip(0, 0, -1, Math.PI); this.dodgeF = 0; this.dodgeS = 1;
       } else this.applyLinear(up.x * C.jumpImpulse, up.y * C.jumpImpulse, up.z * C.jumpImpulse);
       return;
     }
@@ -379,8 +399,13 @@ export class Car {
     const dvF = f * C.dodgeImpulse * bonus, dvS = s * C.dodgeImpulse;
     this.applyLinear(flatF.x * dvF + flatR.x * dvS, flatF.y * dvF + flatR.y * dvS, flatF.z * dvF + flatR.z * dvS);
     // flip axis in the car's local frame: nose-down = -X rotation, roll-right = -Z rotation
-    this.dodgeAxis.set(-f, 0, -s);
-    this.flipActive = true;
+    const overturned = up.y < -0.2 && this.bodyTouch;
+    this.startFlip(-f, 0, -s, overturned ? Math.PI : Math.PI * 2);
+  }
+
+  startFlip(x, y, z, total) {
+    this.dodgeAxis.set(x, y, z).normalize();
+    this.flipActive = true; this.flipAngle = 0; this.flipTarget = 0; this.flipTotal = total;
   }
 
   // Demolition

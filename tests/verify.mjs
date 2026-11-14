@@ -59,7 +59,8 @@ check('tapped jump lower than held jump', hHold > hTap * 1.5, `${(hTap * 100).to
   check('second jump (no direction) adds ~292 uu/s vertical', car.vel.y - vyBefore > 2.5 && car.vel.y - vyBefore < 3.3, toUU(car.vel.y - vyBefore).toFixed(0)); }
 { reset(0, -40, Math.PI); for (let i = 0; i < 6; i++) stepCar(mk({ jump: i < 3 })); for (let i = 0; i < 30; i++) stepCar(mk({})); const f0 = car.vel.dot(car.fwd); stepCar(mk({ jump: true, pitch: 1 })); stepCar(mk({ jump: true, pitch: 1 }));
   const gain = toUU(car.vel.dot(car.fwd) - f0); check('forward dodge impulse ~500 uu/s', gain > 440 && gain < 560, gain.toFixed(0));
-  for (let i = 0; i < 60; i++) stepCar(mk({ pitch: 0 })); const w = car.angVel.length(); check('flip torque rotates car, angular speed capped at 5.5', w <= 5.55, w.toFixed(2)); }
+  for (let i = 0; i < 90; i++) stepCar(mk({ pitch: 0 })); const w = car.angVel.length(); check('flip completes one revolution and stops spinning (car comes out level)', w < 1 && car.up.y > 0.9, `w ${w.toFixed(2)} up.y ${car.up.y.toFixed(2)}`);
+  car.body.setTranslation({ x: 0, y: 15, z: -40 }, true); let wm = 0; for (let i = 0; i < 120; i++) { stepCar(mk({ pitch: 1, roll: 1, steer: 1 })); wm = Math.max(wm, car.angVel.length()); } check('air-control angular speed capped at 5.5 rad/s', wm <= 5.55 && wm > 5, wm.toFixed(2)); }
 { reset(0, -40, Math.PI); for (let i = 0; i < 6; i++) stepCar(mk({ jump: i < 3 })); for (let i = 0; i < 30; i++) stepCar(mk({})); stepCar(mk({ jump: true, pitch: 1 })); stepCar(mk({ jump: true, pitch: 1 })); let can = true; const before = car.hasDodged; for (let i = 0; i < 12; i++) stepCar(mk({ jump: i % 2 === 0, pitch: 1 }));
   check('only one dodge per airtime', before && true); }
 // 9. dodge deadline: no flip after 1.25s

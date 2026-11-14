@@ -192,9 +192,8 @@ export class BotDriver {
       else if (s.t < 0.12) c.jump = false;
       else if (s.t < 0.2) { c.jump = true; c.pitch = s.f; c.steer = s.s; }  // directional second jump => dodge
       else {
-        c.pitch = s.speedflip ? -1 * 0 : 0;
-        if (s.speedflip && s.t < 0.55) { c.pitch = -1; c.boost = true; } // cancel the flip so the car lands flat
-        if (s.t > 0.2 && s.t < 0.5) { c.boost = c.boost || s.speedflip; }
+        c.pitch = 0;                                   // let the flip finish: it comes out level
+        if (s.speedflip && s.t < 0.5) c.boost = true;
         if (s.t > 0.9) this.seq = null;
       }
       if (s.speedflip && s.t < 0.2) c.boost = true;

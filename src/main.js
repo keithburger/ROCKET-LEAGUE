@@ -117,7 +117,7 @@ async function boot() {
     } else if (match.state === 'ended') cam.orbit(renderer.time);
     else {
       _f.set(0, 0, -1).applyQuaternion(h.rQuat);
-      cam.update({ dt, carPos: h.rPos, carFwd: _f, surfaceNormal: h.surfaceNormal, onSurface: h.contacts >= 2, speed: h.speed, boosting: h.boosting,
+      cam.update({ dt, carPos: h.rPos, carFwd: _f, carVel: h.vel, onGround: h.contacts >= 3, speed: h.speed, boosting: h.boosting,
         ballPos: match.rBall.pos, ballCam: input.ballCam, look: input.look, hasCar: true });
     }
     if (renderer.camShake) { cam.shake = Math.max(cam.shake, renderer.camShake); renderer.camShake = 0; }
